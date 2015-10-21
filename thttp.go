@@ -2,11 +2,12 @@
 // Use of this source code is governed by a BSD-style license described in the
 // LICENSE file.
 
-// Package wget provides support for fetching & serving files via http.
-package wget
+// Package thttp (Trivial HTTP) provides support for fetching & serving files via http.
+package main
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -163,4 +164,29 @@ func (w *Config) Run() (err error) {
 	}
 
 	return
+}
+
+func main() {
+	w := &Config{}
+
+	fs := flag.NewFlagSet("thttp", flag.ExitOnError)
+
+	fs.BoolVar(&w.Verbose, "verbose", false, "Verbose")
+	fs.BoolVar(&w.Stdout, "stdout", true, "Fetch file and send to standard output")
+	fs.StringVar(&w.ServePath, "serve", "", "Directory to serve files from as file server")
+	fs.StringVar(&w.ServePort, "port", "9090", "TCP port for file server")
+	fs.StringVar(&w.PutPath, "put", "", "URL to http PUT standard input")
+	fs.Parse(os.Args[1:])
+
+	w.GetPaths = fs.Args()
+	if len(w.GetPaths) == 0 && len(w.PutPath) == 0 && w.ServePath == "" {
+		fmt.Printf("Usage: thttp OPTIONS FILES...\n")
+		fs.PrintDefaults()
+		os.Exit(1)
+	}
+
+	err := w.Run()
+	if err != nil {
+		fmt.Println(err)
+	}
 }

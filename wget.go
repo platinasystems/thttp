@@ -20,11 +20,13 @@ import (
 )
 
 type Config struct {
-	ServePath string
-	ServePort string
-	GetPaths  []string
-	PutPath   string
-	Verbose   bool
+	ServePath         string
+	ServePort         string
+	serveFilesHandler http.Handler
+
+	GetPaths []string
+	PutPath  string
+	Verbose  bool
 	// Output to stdout instead of file
 	Stdout bool
 }
@@ -62,7 +64,7 @@ func (w *Config) Get(u *url.URL) (err error) {
 func (w *Config) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case "GET":
-		http.FileServer(http.Dir(w.ServePath))
+		w.serveFilesHandler.ServeHTTP(res, req)
 	case "PUT", "APPEND":
 		var (
 			f   *os.File
@@ -98,6 +100,7 @@ func (w *Config) Run() (err error) {
 
 	var wg sync.WaitGroup
 	if w.ServePath != "" {
+		w.serveFilesHandler = http.FileServer(http.Dir(w.ServePath))
 		http.Handle("/", w)
 		var listener net.Listener
 		listener, err = net.Listen("tcp", ":"+w.ServePort)
